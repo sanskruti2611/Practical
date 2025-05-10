@@ -1,0 +1,80 @@
+#include <iostream>
+#include <omp.h>
+#include <climits>
+
+// Function to compute minimum using parallel reduction
+int parallel_min(int data[], int size) {
+    int min_val = INT_MAX;
+
+    #pragma omp parallel for reduction(min:min_val)
+    for (int i = 0; i < size; ++i) {
+        if (data[i] < min_val) min_val = data[i];
+    }
+
+    return min_val;
+}
+
+// Function to compute maximum using parallel reduction
+int parallel_max(int data[], int size) {
+    int max_val = INT_MIN;
+
+    #pragma omp parallel for reduction(max:max_val)
+    for (int i = 0; i < size; ++i) {
+        if (data[i] > max_val) max_val = data[i];
+    }
+
+    return max_val;
+}
+
+// Function to compute sum using parallel reduction
+long long parallel_sum(int data[], int size) {
+    long long sum = 0;
+
+    #pragma omp parallel for reduction(+:sum)
+    for (int i = 0; i < size; ++i) {
+        sum += data[i];
+    }
+
+    return sum;
+}
+
+// Function to compute average
+double parallel_avg(int data[], int size) {
+    long long sum = parallel_sum(data, size);
+    return static_cast<double>(sum) / size;
+}
+
+int main() {
+    int size;
+
+    // Ask user for input size
+    std::cout << "Enter the size of the array: ";
+    std::cin >> size;
+
+    // Dynamically allocate array based on user input
+    int* data = new int[size];
+
+    // Input array elements
+    std::cout << "Enter " << size << " elements:\n";
+    for (int i = 0; i < size; ++i) {
+        std::cin >> data[i];
+    }
+
+    // Call functions for min, max, sum, avg
+    int min_val = parallel_min(data, size);
+    int max_val = parallel_max(data, size);
+    long long sum_val = parallel_sum(data, size);
+    double avg_val = parallel_avg(data, size);
+
+    // Output the results
+    std::cout << "\nResults:\n";
+    std::cout << "Minimum: " << min_val << "\n";
+    std::cout << "Maximum: " << max_val << "\n";
+    std::cout << "Sum:     " << sum_val << "\n";
+    std::cout << "Average: " << avg_val << "\n";
+
+    // Free the allocated memory
+    delete[] data;
+
+    return 0;
+}

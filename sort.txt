@@ -1,0 +1,117 @@
+#include <iostream>
+#include <omp.h>
+using namespace std;
+
+// ----------------------- Merge Sort ------------------------
+
+void merge(int arr[], int left, int mid, int right) {
+    int sizeLeft = mid - left + 1;
+    int sizeRight = right - mid;
+
+    int* leftArray = new int[sizeLeft];
+    int* rightArray = new int[sizeRight];
+
+    for (int i = 0; i < sizeLeft; i++)
+        leftArray[i] = arr[left + i];
+    for (int j = 0; j < sizeRight; j++)
+        rightArray[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;
+
+    while (i < sizeLeft && j < sizeRight) {
+        if (leftArray[i] <= rightArray[j]) {
+            arr[k++] = leftArray[i++];
+        } else {
+            arr[k++] = rightArray[j++];
+        }
+    }
+
+    while (i < sizeLeft)
+        arr[k++] = leftArray[i++];
+    while (j < sizeRight)
+        arr[k++] = rightArray[j++];
+
+    delete[] leftArray;
+    delete[] rightArray;
+}
+
+void mergeSort(int arr[], int left, int right) {
+    if (left < right) {
+        int mid = (left + right) / 2;
+
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            mergeSort(arr, left, mid);
+
+            #pragma omp section
+            mergeSort(arr, mid + 1, right);
+        }
+
+        merge(arr, left, mid, right);
+    }
+}
+
+// -------------------- Bubble Sort --------------------------
+
+void swap(int &a, int &b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+void parallelBubbleSort(int arr[], int n) {
+    for (int i = 0; i < n; i++) {
+        int first = i % 2;
+
+        #pragma omp parallel for
+        for (int j = first; j < n - 1; j += 2) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+// ------------------------ Main -----------------------------
+
+int main() {
+    int n;
+    cout << "Enter number of elements: ";
+    cin >> n;
+
+    int* original = new int[n];
+    cout << "Enter elements:\n";
+    for (int i = 0; i < n; i++)
+        cin >> original[i];
+
+    // Create two separate arrays to sort independently
+    int* arrMerge = new int[n];
+    int* arrBubble = new int[n];
+    for (int i = 0; i < n; i++) {
+        arrMerge[i] = original[i];
+        arrBubble[i] = original[i];
+    }
+
+    // Run both sorting algorithms
+    mergeSort(arrMerge, 0, n - 1);
+    parallelBubbleSort(arrBubble, n);
+
+    // Output both results
+    cout << "\nSorted using Parallel Merge Sort:\n";
+    for (int i = 0; i < n; i++)
+        cout << arrMerge[i] << " ";
+
+    cout << "\n\nSorted using Parallel Bubble Sort:\n";
+    for (int i = 0; i < n; i++)
+        cout << arrBubble[i] << " ";
+
+    cout << endl;
+
+    // Free memory
+    delete[] original;
+    delete[] arrMerge;
+    delete[] arrBubble;
+
+    return 0;
+}

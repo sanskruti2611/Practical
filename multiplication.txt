@@ -1,0 +1,60 @@
+#include <iostream>
+#include <cuda_runtime.h>
+
+__global__ void matrixMul(float *A, float *B, float *C, int N) {
+    int row = threadIdx.y + blockIdx.y * blockDim.y;
+    int col = threadIdx.x + blockIdx.x * blockDim.x;
+    if (row < N && col < N) {
+        float sum = 0;
+        for (int k = 0; k < N; ++k)
+            sum += A[row * N + k] * B[k * N + col];
+        C[row * N + col] = sum;
+    }
+}
+
+void printMatrix(float *mat, int N, const char* name) {
+    std::cout << name << ":\n";
+    for (int i = 0; i < N * N; ++i) {
+        std::cout << mat[i] << " ";
+        if ((i + 1) % N == 0) std::cout << "\n";
+    }
+}
+
+int main() {
+    int N = 3;
+    size_t size = N * N * sizeof(float);
+
+    float *A = (float*)malloc(size);
+    float *B = (float*)malloc(size);
+    float *C = (float*)malloc(size);
+
+    float *d_A, *d_B, *d_C;
+    cudaMalloc(&d_A, size);
+    cudaMalloc(&d_B, size);
+    cudaMalloc(&d_C, size);
+
+    // Fill A and B with sample values
+    for (int i = 0; i < N * N; ++i) {
+        A[i] = (i % N) + 1;
+        B[i] = ((i % N) + 1) * 2;
+    }
+
+    cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
+
+    dim3 threads(16, 16);
+    dim3 blocks((N + 15) / 16, (N + 15) / 16);
+    matrixMul<<<blocks, threads>>>(d_A, d_B, d_C, N);
+    cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
+
+    // Print matrices
+    printMatrix(A, N, "Matrix A");
+    printMatrix(B, N, "Matrix B");
+    printMatrix(C, N, "Matrix C = A * B");
+
+    // Cleanup
+    free(A); free(B); free(C);
+    cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
+
+    return 0;
+}
